@@ -1,5 +1,6 @@
 ---
 name: Markdown Check
+
 on:
   push:
     paths:
@@ -11,6 +12,7 @@ on:
       - ".github/workflows/*"
       - ".markdownlint.yaml"
       - "**/*.md"
+
 jobs:
   lint:
     runs-on: ubuntu-latest

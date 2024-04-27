@@ -1,0 +1,17 @@
+<configuration>
+    <variable resource="app.properties"/>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.LogServiceAppender">
+        <redisUrl>${redis.url:-redis://localhost:6379}</redisUrl>
+        <logsTopic>${topic.logs:-logs}</logsTopic>
+        <serviceName>model-service</serviceName>
+    </appender>
+    <root level="info">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="LOG-SERVICE"/>
+    </root>
+</configuration>
