@@ -2,108 +2,72 @@ package org.vivlaniv.nexohub
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.redisson.Redisson
+import org.redisson.api.RedissonClient
 import org.redisson.config.Config
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.Instant
-import java.util.*
+import org.vivlaniv.nexohub.handlers.configureFindUserHandler
+import org.vivlaniv.nexohub.handlers.configureGetSavedDevicesHandler
+import org.vivlaniv.nexohub.handlers.configureSaveDeviceHandler
+import org.vivlaniv.nexohub.handlers.configureSaveSensorsHandler
+import org.vivlaniv.nexohub.handlers.configureSaveUserHandler
+import java.util.Properties
+
+class Application(
+    val log: Logger,
+    val props: Properties,
+    val redis: RedissonClient
+)
 
 fun main() {
     val log = LoggerFactory.getLogger("db-service")
+
     log.info("Starting db-service")
 
-    val prop = Properties()
-    prop.load(ClassLoader.getSystemResourceAsStream("app.properties"))
-
-    // get properties
-    val redisUrl = prop.getProperty("redis.url", "redis://localhost:6379")
-    val datasourceUrl = prop.getProperty("datasource.url", "jdbc:postgresql://localhost:5432/postgres")
-    val datasourceDriver = prop.getProperty("datasource.driver", "org.postgresql.Driver")
-    val datasourceUser = prop.getProperty("datasource.user", "postgres")
-    val datasourcePass = prop.getProperty("datasource.pass", "postgres")
-    val getSavedDevicesTopic = prop.getProperty("topic.saved.devices", "devices/saved/get")
-    val saveDeviceTopic = prop.getProperty("topic.save.device", "devices/save")
-    val saveSensorsTopic = prop.getProperty("topic.save.sensors", "sensors/save")
+    // load properties
+    val props = Properties().also {
+        it.load(ClassLoader.getSystemResourceAsStream("app.properties"))
+    }
 
     log.info("Properties loaded")
 
     // create redis client
-    val redisConfig = Config()
-    redisConfig.useSingleServer().address = redisUrl
-    val redissonClient = Redisson.create(redisConfig)
+    val redisClient = Redisson.create(
+        Config().apply {
+            useSingleServer().address = props.getProperty("redis.url", "redis://redis:6379")
+        }
+    )
 
     // connect to database
-    val dataSource = HikariDataSource(HikariConfig().apply {
-        jdbcUrl = datasourceUrl
-        driverClassName = datasourceDriver
-        username = datasourceUser
-        password = datasourcePass
-    })
-    Database.connect(dataSource)
+    Database.connect(
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = props.getProperty("datasource.url", "jdbc:postgresql://postgres:5432/postgres")
+            driverClassName = props.getProperty("datasource.driver", "org.postgresql.Driver")
+            username = props.getProperty("datasource.user", "postgres")
+            password = props.getProperty("datasource.pass", "postgres")
+        })
+    )
 
     transaction {
-        SchemaUtils.createMissingTablesAndColumns(Devices, SensorRecords)
+        if (props.getProperty("tables.drop-first", "false").toBoolean()) {
+            SchemaUtils.drop(Users, Devices, SensorRecords)
+        }
+        SchemaUtils.createMissingTablesAndColumns(Users, Devices, SensorRecords)
     }
 
     log.info("Database initialized")
 
-    // subscribe on topics
-    redissonClient.getTopic("$getSavedDevicesTopic/in").addListener(String::class.java) { _, msg ->
-        log.info("got get saved devices request {}", msg)
-        val task = Json.decodeFromString<GetSavedDevicesTask>(msg)
-        val devices = transaction {
-            Devices.selectAll().map {
-                SavedDeviceInfo(it[Devices.id], it[Devices.type], it[Devices.user], it[Devices.room], it[Devices.alias])
-            }
-        }
-        val result = GetSavedDevicesTaskResult(task.id, devices)
-        redissonClient.getTopic("$getSavedDevicesTopic/out")
-            .publish(Json.encodeToString(result))
-    }
-
-    redissonClient.getTopic("$saveDeviceTopic/in").addListener(String::class.java) { _, msg ->
-        log.info("got save device request {}", msg)
-        val task = Json.decodeFromString<SaveUserDeviceTask>(msg)
-        transaction {
-            val rows = Devices.update({ (Devices.id eq task.device) and (Devices.user eq task.user) }) {
-                it[type] = task.type
-                it[room] = task.room
-                it[alias] = task.alias
-            }
-            if (rows == 0) {
-                Devices.insert {
-                    it[id] = task.device
-                    it[type] = task.type
-                    it[user] = task.user
-                    it[room] = task.room
-                    it[alias] = task.alias
-                }
-            }
-        }
-        val result = SaveUserDeviceTaskResult(task.id)
-        redissonClient.getTopic("$saveDeviceTopic/out").publish(Json.encodeToString(result))
-    }
-
-    redissonClient.getTopic("$saveSensorsTopic/in").addListener(String::class.java) { _, msg ->
-        log.info("got save sensors request {}", msg)
-        val task = Json.decodeFromString<SaveSensorsTask>(msg)
-        val now = Instant.now()
-        transaction {
-            for (deviceSensors in task.sensors) {
-                for (sensorRecord in deviceSensors.value) {
-                    SensorRecords.insert {
-                        it[device] = deviceSensors.key
-                        it[sensor] = sensorRecord.name
-                        it[value] = sensorRecord.value
-                        it[timestamp] = now
-                    }
-                }
-            }
-        }
+    // configure handlers
+    Application(log, props, redisClient).apply {
+        configureFindUserHandler()
+        configureSaveUserHandler()
+        configureSaveDeviceHandler()
+        configureGetSavedDevicesHandler()
+        configureSaveSensorsHandler()
     }
 
     log.info("db-service started")

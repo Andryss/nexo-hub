@@ -5,6 +5,37 @@ import java.util.*
 
 // db-service tasks
 
+
+@Serializable
+data class FindUserTask(
+    override val id: String = UUID.randomUUID().toString(),
+    val username: String
+) : Task
+
+@Serializable
+data class FindUserTaskResult(
+    override val tid: String,
+    override val code: Int = 0,
+    override val errorMessage: String? = null,
+    val passwordHash: String? = null
+) : TaskResult
+
+
+@Serializable
+data class SaveUserTask(
+    override val id: String = UUID.randomUUID().toString(),
+    val username: String,
+    val passwordHash: String
+) : Task
+
+@Serializable
+data class SaveUserTaskResult(
+    override val tid: String,
+    override val code: Int = 0,
+    override val errorMessage: String? = null
+) : TaskResult
+
+
 @Serializable
 data class GetSavedDevicesTask(
     override val id: String = UUID.randomUUID().toString(),

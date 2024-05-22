@@ -69,20 +69,3 @@ data class SetDevicePropertyTaskResult(
     override val code: Int = 0,
     override val errorMessage: String? = null
 ) : TaskResult
-
-
-@Serializable
-data class SignalDeviceTask(
-    override val id: String = UUID.randomUUID().toString(),
-    val user: String,
-    val device: String,
-    val name: String,
-    val args: List<Int>
-) : Task
-
-@Serializable
-data class SignalDeviceTaskResult(
-    override val tid: String,
-    override val code: Int = 0,
-    override val errorMessage: String? = null
-) : TaskResult

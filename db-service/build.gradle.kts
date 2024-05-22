@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.jetbrainsKotlinJvm)
     alias(libs.plugins.kotlinSerialization)
+    application
 }
 
 dependencies {
@@ -15,6 +16,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+}
+
+application {
+    mainClass= "org.vivlaniv.nexohub.ApplicationKt"
 }
 
 tasks.getByName<Test>("test") {

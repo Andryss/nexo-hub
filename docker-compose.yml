@@ -1,0 +1,124 @@
+services:
+
+  gateway:
+    container_name: nexohub-gateway
+    image: eclipse-temurin:21-jdk
+    volumes:
+      - ./connection-service/build/distributions/connection-service.tar:/connection-service.tar
+    command: bash -c "tar xvf /connection-service.tar; ./connection-service/bin/connection-service"
+    networks:
+      - nexohub-internal
+    depends_on:
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  databaser:
+    container_name: nexohub-databaser
+    image: eclipse-temurin:21-jdk
+    volumes:
+      - ./db-service/build/distributions/db-service.tar:/db-service.tar
+    command: bash -c "tar xvf /db-service.tar; ./db-service/bin/db-service"
+    networks:
+      - nexohub-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  loggy:
+    container_name: nexohub-loggy
+    image: eclipse-temurin:21-jdk
+    volumes:
+      - ./log-service/build/distributions/log-service.tar:/log-service.tar
+    command: bash -c "tar xvf /log-service.tar; ./log-service/bin/log-service"
+    networks:
+      - nexohub-internal
+    depends_on:
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+
+  fake-houses:
+    container_name: nexohub-fake-houses
+    image: eclipse-temurin:21-jdk
+    volumes:
+      - ./model-service/build/distributions/model-service.tar:/model-service.tar
+    command: bash -c "tar xvf /model-service.tar; ./model-service/bin/model-service"
+    networks:
+      - nexohub-internal
+    depends_on:
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  fake-users:
+    container_name: nexohub-fake-users
+    image: eclipse-temurin:21-jdk
+    volumes:
+      - ./load-simulator/build/distributions/load-simulator.tar:/load-simulator.tar
+    command: bash -c "tar xvf /load-simulator.tar; ./load-simulator/bin/load-simulator"
+    networks:
+      - nexohub-internal
+    depends_on:
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    profiles:
+      - load-testing
+
+  mosquitto:
+    container_name: nexohub-mosquitto
+    image: eclipse-mosquitto
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    networks:
+      - nexohub-internal
+
+  redis:
+    container_name: nexohub-redis
+    image: redis/redis-stack:latest
+    networks:
+      - nexohub-internal
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    container_name: nexohub-postgres
+    image: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - nexohub-internal
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  clickhouse:
+    container_name: nexohub-clickhouse
+    image: clickhouse/clickhouse-server
+    networks:
+      - nexohub-internal
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  nexohub-internal:
+    driver: bridge

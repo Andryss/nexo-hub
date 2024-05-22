@@ -6,6 +6,37 @@ import java.util.*
 // connection-service tasks
 
 @Serializable
+data class AuthUserTask(
+    override val id: String = UUID.randomUUID().toString(),
+    val username: String,
+    val password: String
+) : Task
+
+@Serializable
+data class AuthUserTaskResult(
+    override val tid: String,
+    override val code: Int = 0,
+    override val errorMessage: String? = null,
+    val token: String? = null
+) : TaskResult
+
+
+@Serializable
+data class RegisterUserTask(
+    override val id: String = UUID.randomUUID().toString(),
+    val username: String,
+    val password: String
+) : Task
+
+@Serializable
+data class RegisterUserTaskResult(
+    override val tid: String,
+    override val code: Int = 0,
+    override val errorMessage: String? = null
+) : TaskResult
+
+
+@Serializable
 data class SearchDevicesTask(
     override val id: String = UUID.randomUUID().toString()
 ) : Task
@@ -13,7 +44,9 @@ data class SearchDevicesTask(
 @Serializable
 data class SearchDevicesTaskResult(
     override val tid: String,
-    val devices: List<DeviceInfo>
+    override val code: Int = 0,
+    override val errorMessage: String? = null,
+    val devices: List<DeviceInfo>? = null
 ) : TaskResult
 
 
@@ -76,20 +109,4 @@ data class PutDevicePropertyTaskResult(
     override val code: Int = 0,
     override val errorMessage: String? = null,
     val device: String,
-) : TaskResult
-
-
-@Serializable
-data class SendDeviceSignalTask(
-    override val id: String = UUID.randomUUID().toString(),
-    val device: String,
-    val signal: String,
-    val arguments: List<Int> = listOf()
-) : Task
-
-@Serializable
-data class SendDeviceSignalTaskResult(
-    override val tid: String,
-    override val code: Int = 0,
-    override val errorMessage: String? = null
 ) : TaskResult

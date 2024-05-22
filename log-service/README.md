@@ -15,7 +15,7 @@ dependencies {
 
 ```xml
 <appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.LogServiceAppender">
-    <redisUrl><!-- redis url (default: redis://localhost:6379) --></redisUrl>
+    <redisUrl><!-- redis url (default: redis://redis:6379) --></redisUrl>
     <logsTopic><!-- logs topic to write (default: logs) --></logsTopic>
     <serviceName><!-- service name or id (default: unnamed) --></serviceName>
 </appender>

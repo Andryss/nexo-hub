@@ -1,21 +1,20 @@
 package org.vivlaniv.nexohub
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.redisson.Redisson
 import org.redisson.config.Config
 import java.time.Instant
 
-fun main() {
-    testLoad()
-}
-
-fun testLoad() {
+fun main() = runBlocking {
     val config = Config()
-    config.useSingleServer().address = "redis://localhost:6379"
+    config.useSingleServer().address = "redis://redis:6379"
     val redissonClient = Redisson.create(config)
     for (i in 0 until 20) {
-        Thread{
+        launch(Dispatchers.IO) {
             for (j in 0 until 100000) {
                 redissonClient.getTopic("logs").publish(Json.encodeToString(
                     LogMessage(
@@ -30,10 +29,10 @@ fun testLoad() {
                 ))
             }
             println("thread finished")
-        }.start()
+        }
     }
 
-    println("all request sent")
+    println("all workers launched")
 }
 
 private fun genMsg(): String {

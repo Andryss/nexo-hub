@@ -6,7 +6,7 @@
         </encoder>
     </appender>
     <appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.LogServiceAppender">
-        <redisUrl>${redis.url:-redis://localhost:6379}</redisUrl>
+        <redisUrl>${redis.url:-redis://redis:6379}</redisUrl>
         <logsTopic>${topic.logs:-logs}</logsTopic>
         <serviceName>model-service</serviceName>
     </appender>

@@ -6,15 +6,19 @@ import kotlinx.serialization.Serializable
 enum class Type {
     BOOLEAN,        // 0 or 1
     PERCENT,        // value from 0 to 100
-    BYTE,           // value from 0 to 255
-    TEMPERATURE     // temperature value
+    COLOR,          // color value (empty byte + red + green + blue)
+    TEMPERATURE,    // temperature value
+    HUMIDITY,       // humidity value (percent like in range [10,80])
+    ENUM,           // ordinal of enum value
 }
 
 @Serializable
 data class Schema(
     val type: Type,
     val min: Int? = null,
-    val max: Int? = null
+    val max: Int? = null,
+    val enumValues: List<String>? = null,
+    val isSensor: Boolean? = null,
 )
 
 @Serializable
@@ -26,17 +30,10 @@ data class PropertyInfo(
 )
 
 @Serializable
-data class SignalInfo(
-    val name: String,
-    val args: List<Schema>
-)
-
-@Serializable
 data class DeviceInfo(
     val id: String,
     val type: String,
     val properties: List<PropertyInfo>,
-    val signals: List<SignalInfo>
 )
 
 @Serializable
@@ -55,5 +52,4 @@ data class SavedDevice(
     val room: String?,
     val alias: String?,
     var properties: List<PropertyInfo>,
-    val signals: List<SignalInfo>
 )

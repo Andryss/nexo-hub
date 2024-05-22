@@ -6,7 +6,14 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
@@ -16,38 +23,53 @@ import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.vivlaniv.nexohub.pages.MainPage
+import java.util.Properties
 
 const val TAG = "mobile-app"
 
 class AppState : Application() {
-    lateinit var username: String
+    lateinit var properties: Properties
     lateinit var mqttClient: MqttAndroidClient
-    var mqttConnected = mutableStateOf(false)
+    lateinit var username: String
+    lateinit var userToken: String
 }
 
-fun AppState.configureWith(applicationContext: Context) {
-    username = "user"
+fun AppState.configureWith(applicationContext: Context, onFinished: () -> Unit) {
+    properties = Properties().apply {
+        load(applicationContext.assets.open("app.properties"))
+    }
+
+    val mqttUtl = properties.getProperty("mqtt.url", "tcp://localhost:1883")
     mqttClient = MqttAndroidClient(
-        applicationContext, "tcp://192.168.0.101:1883", MqttClient.generateClientId()
+        applicationContext, mqttUtl, MqttClient.generateClientId()
     ).apply {
         setCallback(mqttCallbackObj())
     }
-    mqttClient.connect(null, mqttActionListener(this))
+    mqttClient.connect(null, mqttActionListener(onFinished))
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        (application as AppState).configureWith(applicationContext)
+        val appState = application as AppState
+        var configurationFinished by mutableStateOf(false)
+
+        appState.configureWith(applicationContext) { configurationFinished = true }
 
         setContent {
-            val navController = rememberNavController()
-
-            MainPage(
-                appState = application as AppState,
-                navController = navController
-            )
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (!configurationFinished) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else {
+                    MainPage(
+                        state = appState,
+                        navController = rememberNavController()
+                    )
+                }
+            }
         }
     }
 }
@@ -66,10 +88,10 @@ fun mqttCallbackObj() = object : MqttCallback {
     }
 }
 
-fun mqttActionListener(state: AppState) = object : IMqttActionListener {
+fun mqttActionListener(onSuccess: () -> Unit) = object : IMqttActionListener {
     override fun onSuccess(asyncActionToken: IMqttToken) {
         Log.i(TAG, "mqtt client connection succeeded")
-        state.mqttConnected.value = true
+        onSuccess()
     }
 
     override fun onFailure(asyncActionToken: IMqttToken, exception: Throwable) {

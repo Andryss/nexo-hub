@@ -3,6 +3,12 @@ package org.vivlaniv.nexohub
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
 
+object Users : Table("users") {
+    val username = text("username")
+    val password = text("password")
+    override val primaryKey = PrimaryKey(username)
+}
+
 object Devices : Table("devices") {
     val id = text("id")
     val type = text("type")

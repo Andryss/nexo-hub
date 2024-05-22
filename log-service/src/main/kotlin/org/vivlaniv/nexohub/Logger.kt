@@ -26,7 +26,7 @@ data class LogMessage(
 @Suppress("MemberVisibilityCanBePrivate")
 class LogServiceAppender: AppenderBase<ILoggingEvent>() {
 
-    var redisUrl: String = "redis://localhost:6379"
+    var redisUrl: String = "redis://redis:6379"
     var logsTopic: String = "logs"
     var serviceName: String = "unnamed"
 

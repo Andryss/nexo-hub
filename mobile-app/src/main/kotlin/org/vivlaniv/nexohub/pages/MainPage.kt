@@ -1,102 +1,46 @@
 package org.vivlaniv.nexohub.pages
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import org.vivlaniv.nexohub.AppState
 
-@Composable
-fun MainPage(appState: AppState, navController: NavHostController) {
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (!appState.mqttConnected.value) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else {
-            Scaffold(
-                bottomBar = {
-                    BottomNavigationBar(navController = navController)
-                }, content = { padding ->
-                    NavHostContainer(
-                        state = appState,
-                        navController = navController,
-                        padding = padding
-                    )
-                }
-            )
-        }
-    }
+enum class Routes(val route: String) {
+    SIGN_IN("signIn"),
+    SIGN_UP("signUp"),
+    HOME("home"),
+    SEARCH("search")
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavHostController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+fun MainPage(state: AppState, navController: NavHostController) {
 
-    NavigationBar {
-        NavigationBarItem(
-            selected = (currentRoute == "home"),
-            onClick = {
-                navController.navigate("home")
-            }, icon = {
-                Icon(imageVector = Icons.Filled.Home, contentDescription = "Home")
-            }, label = {
-                Text(text = "Home")
-            }
-        )
-        NavigationBarItem(
-            selected = (currentRoute == "search"),
-            onClick = {
-                navController.navigate("search")
-            }, icon = {
-                Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
-            }, label = {
-                Text(text = "Search")
-            }
-        )
+    fun navigateTo(route: Routes): () -> Unit = { navController.navigate(route.route) }
+
+    fun navigateBack() {
+        navController.navigateUp()
     }
-}
 
-@Composable
-fun NavHostContainer(
-    state: AppState,
-    navController: NavHostController,
-    padding: PaddingValues
-) {
     NavHost(
         navController = navController,
-        startDestination = "home",
-        modifier = Modifier.padding(paddingValues = padding),
+        startDestination = Routes.SIGN_IN.route,
         builder = {
-            composable("home") {
-                HomePage(state = state)
+            composable(Routes.SIGN_IN.route) {
+                AuthPage(
+                    state = state,
+                    onAuthSuccess = navigateTo(Routes.HOME),
+                    navigateToRegisterPage = navigateTo(Routes.SIGN_UP)
+                )
             }
-            composable("search") {
-                SearchPage(state = state, navController = navController)
+            composable(Routes.SIGN_UP.route) {
+                RegisterPage(state = state, onRegisterSuccess = ::navigateBack)
             }
-            composable("save/{device}") { backStackEntry ->
-                val device = backStackEntry.arguments?.getString("device")
-                if (device != null) {
-                    SavePage(state = state, navController = navController, device = device)
-                }
+            composable(Routes.HOME.route) {
+                HomePage(state = state, onSignOut = ::navigateBack, navigateToSearchPage = navigateTo(Routes.SEARCH))
+            }
+            composable(Routes.SEARCH.route) {
+                SearchPage(state = state, navigateBack = ::navigateBack)
             }
         }
     )

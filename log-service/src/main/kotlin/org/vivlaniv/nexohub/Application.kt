@@ -7,6 +7,12 @@ import com.clickhouse.client.ClickHouseResponse
 import com.clickhouse.data.ClickHouseDataStreamFactory
 import com.clickhouse.data.ClickHouseFormat
 import com.clickhouse.data.format.BinaryStreamUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.redisson.Redisson
 import org.redisson.config.Config
@@ -14,11 +20,12 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.*
+import java.util.Properties
+import java.util.TimeZone
 import java.util.concurrent.CompletableFuture
-import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.seconds
 
-fun main() {
+fun main() = runBlocking {
     val log = LoggerFactory.getLogger("log-service")
     log.info("Starting log-service")
 
@@ -27,9 +34,9 @@ fun main() {
     }
 
     // get properties
-    val redisUrl = prop.getProperty("redis.url", "redis://localhost:6379")
+    val redisUrl = prop.getProperty("redis.url", "redis://redis:6379")
     val logsTopic = prop.getProperty("topic.logs", "logs")
-    val chUrl = prop.getProperty("clickhouse.url", "http://localhost:8123")
+    val chUrl = prop.getProperty("clickhouse.url", "http://clickhouse:8123")
     val logsTable = prop.getProperty("logs.table", "logs")
     val logsDropFirst = prop.getProperty("logs.table.drop-first", "false").toBoolean()
 
@@ -94,36 +101,40 @@ fun main() {
         log.info("Batch of $writtenRows log messages inserted")
     }
 
+    launch(Dispatchers.IO) {
+        while (true) {
+            delay(30.seconds)
+            batch.flush()
+        }
+    }
+
     // subscribe on topic
     redissonClient.getTopic(logsTopic).addListener(String::class.java) { _, msg ->
-        batch.add(Json.decodeFromString(msg))
+        launch {
+            batch.add(Json.decodeFromString(msg))
+        }
     }
 
     log.info("log-service started")
 }
 
 class Batch<T>(private val size: Int = 500_000, private val action: (List<T>) -> Unit) {
-    private var batch: MutableList<T>
+    private val mutex = Mutex()
+    private var batch: MutableList<T> = ArrayList(size)
 
-    init {
-        batch = ArrayList(size)
-        Thread{
-            fixedRateTimer(period = 30_000) { flush() }
-        }.start()
-    }
-
-    private fun flush() {
+    suspend fun flush() {
         if (batch.isEmpty()) return
-        val oldBatch = synchronized(this) {
-            val oldBatch = batch
-            batch = ArrayList(size)
-            oldBatch
+        val oldBatch = run {
+            val newBatch = ArrayList<T>(size)
+            mutex.withLock {
+                batch.also { batch = newBatch }
+            }
         }
         action.invoke(oldBatch)
     }
 
-    fun add(obj: T) {
-        synchronized(this) {
+    suspend fun add(obj: T) {
+        mutex.withLock {
             batch.add(obj)
         }
     }
