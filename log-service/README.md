@@ -1,8 +1,14 @@
-# Сервис для ведения логов
+# Log service
 
-## Способ подключения
+Service collecting other services logs
 
-Для отправки логов необходимо добавить в проект зависимости:
+## Content
+
+Main package: *org.vivlaniv.nexohub.log*
+
+## Usage
+
+Include log service with gradle:
 
 ```kotlin
 dependencies {
@@ -11,10 +17,10 @@ dependencies {
 }
 ```
 
-А также подключить appender в файле конфигурации:
+Add appender in logback.xml configuration file:
 
 ```xml
-<appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.LogServiceAppender">
+<appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.log.LogServiceAppender">
     <redisUrl><!-- redis url (default: redis://redis:6379) --></redisUrl>
     <logsTopic><!-- logs topic to write (default: logs) --></logsTopic>
     <serviceName><!-- service name or id (default: unnamed) --></serviceName>

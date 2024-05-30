@@ -19,7 +19,7 @@ dependencies {
 }
 
 application {
-    mainClass= "org.vivlaniv.nexohub.ApplicationKt"
+    mainClass = "org.vivlaniv.nexohub.database.ApplicationKt"
 }
 
 tasks.getByName<Test>("test") {

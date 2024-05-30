@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "org.vivlaniv.nexohub"
+    namespace = "org.vivlaniv.nexohub.mobile"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "org.vivlaniv.nexohub"
+        applicationId = "org.vivlaniv.nexohub.mobile"
         minSdk = 26
         //noinspection ExpiredTargetSdkVersion
         targetSdk = 30

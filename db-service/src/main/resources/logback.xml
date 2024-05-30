@@ -5,7 +5,7 @@
             <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    <appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.LogServiceAppender">
+    <appender name="LOG-SERVICE" class="org.vivlaniv.nexohub.log.LogServiceAppender">
         <redisUrl>${redis.url:-redis://redis:6379}</redisUrl>
         <logsTopic>${topic.logs:-logs}</logsTopic>
         <serviceName>db-service</serviceName>

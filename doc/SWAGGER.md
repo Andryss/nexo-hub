@@ -1,6 +1,6 @@
 # Swagger Mosquitto(mqtt)
 
-[ConnectionTask](../common/src/main/kotlin/org/vivlaniv/nexohub/ConnectionTask.kt)
+[ConnectionTask](../common/src/main/kotlin/org/vivlaniv/nexohub/common/task/ConnectionTask.kt)
 
 ## $user/signin
 

@@ -26,20 +26,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Common
-        run: (./gradlew :common:build)
-
-      - name: Build Connection Service
-        run: (./gradlew :connection-service:build)
-      
-      - name: Build Database Service
-        run: (./gradlew :db-service:build)
-
-      - name: Build Logging Service
-        run: (./gradlew :log-service:build)
-      
-      - name: Build Emulator Service
-        run: (./gradlew :model-service:build)
-
-      - name: Build Mobile App
-        run: (./gradlew :mobile-app:build)
+      - name: Build Project
+        run: ./gradlew build
