@@ -6,10 +6,6 @@ on:
     paths:
       - ".github/workflows/*"
       - "**/*.md"
-  pull_request:
-    paths:
-      - ".github/workflows/*"
-      - "**/*.md"
 
 jobs:
   lint:
